@@ -1,0 +1,39 @@
+name: Campus Lost & Found CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Pull the repository code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. Set up Java JDK 17
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    # 3. Build and Run the 5 Unit/Integration Tests
+    - name: Build and Test with Maven
+      run: ./mvnw clean test
+
+    # 4. Package the Executable JAR (CD step)
+    - name: Package JAR Artifact
+      run: ./mvnw package -DskipTests
+
+    # 5. Upload the Artifact
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lostandfound-app
+        path: target/*.jar
