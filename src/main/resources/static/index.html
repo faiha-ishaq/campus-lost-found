@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Lost & Found Portal</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --admin-badge: #7c3aed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; line-height: 1.5; }
+    .container { max-width: 1050px; margin: 0 auto; }
+
+    /* Auth Card */
+    #authSection { max-width: 420px; margin: 80px auto; }
+    .auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+    .auth-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
+    .auth-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
+
+    /* Header & Navigation */
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .user-info { display: flex; align-items: center; gap: 12px; }
+    .role-tag { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .role-student { background: #dbeafe; color: #1e40af; }
+    .role-admin { background: #f3e8ff; color: var(--admin-badge); }
+    .btn-logout { background: transparent; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+
+    /* Layout */
+    .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+    .grid-admin { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 768px) { .grid, .grid-admin { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h2 { font-size: 1.15rem; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+    form label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); }
+    form input, form select, form textarea { width: 100%; padding: 8px 12px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+    form textarea { resize: vertical; min-height: 60px; }
+
+    button { cursor: pointer; border: none; border-radius: 6px; font-weight: 600; }
+    .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 10px; }
+    .btn-claim { background: var(--warning); color: #fff; padding: 5px 10px; font-size: 0.8rem; }
+    .btn-approve { background: var(--success); color: #fff; padding: 5px 10px; font-size: 0.8rem; }
+    .btn-reject { background: var(--danger); color: #fff; padding: 5px 10px; font-size: 0.8rem; }
+    .btn-delete { background: var(--danger); color: #fff; padding: 5px 10px; font-size: 0.8rem; }
+
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .filter-btn { background: #e2e8f0; color: var(--text); padding: 5px 12px; font-size: 0.8rem; border-radius: 20px; }
+    .filter-btn.active { background: var(--primary); color: #fff; }
+
+    .item-card { border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .badge { display: inline-block; padding: 2px 8px; font-size: 0.7rem; font-weight: 700; border-radius: 12px; text-transform: uppercase; margin-bottom: 4px; }
+    .badge-LOST { background: #fee2e2; color: #b91c1c; }
+    .badge-FOUND { background: #dcfce7; color: #15803d; }
+    .badge-CLAIMED { background: #e0e7ff; color: #3730a3; }
+    .badge-PENDING { background: #fef3c7; color: #b45309; }
+    .badge-APPROVED { background: #dcfce7; color: #15803d; }
+    .badge-REJECTED { background: #fee2e2; color: #b91c1c; }
+
+    .meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="authSection" class="card">
+      <h2 style="text-align: center; border: none; margin-bottom: 8px;">Campus Lost & Found</h2>
+      <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Sign in to access the portal</p>
+      
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabStudent" onclick="switchLoginRole('STUDENT')">Student</div>
+        <div class="auth-tab" id="tabAdmin" onclick="switchLoginRole('ADMIN')">Administrator</div>
+      </div>
+
+      <form id="loginForm">
+        <label id="identifierLabel">Student Campus Email</label>
+        <input type="text" id="loginIdentifier" placeholder="e.g., student@campus.edu" required />
+
+        <div id="adminPasswordField" class="hidden">
+          <label>Admin Access Code</label>
+          <input type="password" id="adminPassword" placeholder="Default code: admin123" />
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 8px;">Enter Portal</button>
+      </form>
+    </div>
+
+    <!-- 2. MAIN APPLICATION (PORTAL) -->
+    <div id="appSection" class="hidden">
+      <header>
+        <div>
+          <h1>Campus Lost & Found</h1>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">Central property recovery & claims dashboard</p>
+        </div>
+        <div class="user-info">
+          <span id="displayRole" class="role-tag"></span>
+          <span id="displayUser" style="font-size: 0.9rem; font-weight: 500;"></span>
+          <button class="btn-logout" onclick="logout()">Sign Out</button>
+        </div>
+      </header>
+
+      <!-- STUDENT VIEW -->
+      <div id="studentView" class="grid">
+        <section class="card">
+          <h2>Report Lost / Found Item</h2>
+          <form id="itemForm">
+            <label>Item Name</label>
+            <input type="text" id="title" placeholder="e.g., Casio Calculator" required />
+
+            <label>Status</label>
+            <select id="status">
+              <option value="LOST">Lost (I misplaced this)</option>
+              <option value="FOUND">Found (I discovered this)</option>
+            </select>
+
+            <label>Category</label>
+            <select id="category">
+              <option value="Electronics">Electronics</option>
+              <option value="ID Cards">ID Cards / Keys</option>
+              <option value="Books">Books & Notebooks</option>
+              <option value="Personal Items">Bottles / Personal Belongings</option>
+              <option value="Other">Other</option>
+            </select>
+
+            <label>Location</label>
+            <input type="text" id="location" placeholder="e.g., Computer Lab 3" required />
+
+            <label>Description</label>
+            <textarea id="description" placeholder="Color, stickers, or distinctive marks..."></textarea>
+
+            <button type="submit" class="btn-primary">Post Item</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Browse Campus Items</h2>
+          <div class="filter-bar">
+            <button class="filter-btn active" onclick="loadItems('')">All</button>
+            <button class="filter-btn" onclick="loadItems('LOST')">Lost</button>
+            <button class="filter-btn" onclick="loadItems('FOUND')">Found</button>
+            <button class="filter-btn" onclick="loadItems('CLAIMED')">Claimed</button>
+          </div>
+          <div id="studentItemsContainer"></div>
+        </section>
+      </div>
+
+      <!-- ADMIN MODERATION VIEW -->
+      <div id="adminView" class="grid-admin hidden">
+        <section class="card">
+          <h2>Claims Pending Moderation</h2>
+          <div id="adminClaimsContainer">
+            <p style="color: var(--text-muted);">Loading submitted claims...</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Moderate All Items</h2>
+          <div id="adminItemsContainer">
+            <p style="color: var(--text-muted);">Loading active items...</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentRole = 'STUDENT';
+
+    function switchLoginRole(role) {
+      currentRole = role;
+      document.getElementById('tabStudent').classList.toggle('active', role === 'STUDENT');
+      document.getElementById('tabAdmin').classList.toggle('active', role === 'ADMIN');
+      
+      const adminPass = document.getElementById('adminPasswordField');
+      const label = document.getElementById('identifierLabel');
+      const input = document.getElementById('loginIdentifier');
+
+      if (role === 'ADMIN') {
+        label.innerText = 'Admin Username';
+        input.placeholder = 'e.g., campus_admin';
+        adminPass.classList.remove('hidden');
+      } else {
+        label.innerText = 'Student Campus Email';
+        input.placeholder = 'e.g., student@campus.edu';
+        adminPass.classList.add('hidden');
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById('loginIdentifier').value;
+      if (currentRole === 'ADMIN') {
+        const pass = document.getElementById('adminPassword').value;
+        if (pass !== 'admin123') {
+          alert('Invalid Admin Code! Use default: admin123');
+          return;
+        }
+      }
+
+      sessionStorage.setItem('role', currentRole);
+      sessionStorage.setItem('user', identifier);
+      renderApp();
+    });
+
+    function logout() {
+      sessionStorage.clear();
+      document.getElementById('appSection').classList.add('hidden');
+      document.getElementById('authSection').classList.remove('hidden');
+    }
+
+    function renderApp() {
+      const role = sessionStorage.getItem('role');
+      const user = sessionStorage.getItem('user');
+
+      if (!role || !user) {
+        document.getElementById('authSection').classList.remove('hidden');
+        document.getElementById('appSection').classList.add('hidden');
+        return;
+      }
+
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('appSection').classList.remove('hidden');
+
+      const roleBadge = document.getElementById('displayRole');
+      roleBadge.innerText = role;
+      roleBadge.className = `role-tag ${role === 'ADMIN' ? 'role-admin' : 'role-student'}`;
+      document.getElementById('displayUser').innerText = user;
+
+      if (role === 'ADMIN') {
+        document.getElementById('studentView').classList.add('hidden');
+        document.getElementById('adminView').classList.remove('hidden');
+        loadAdminClaims();
+        loadAdminItems();
+      } else {
+        document.getElementById('adminView').classList.add('hidden');
+        document.getElementById('studentView').classList.remove('hidden');
+        loadItems();
+      }
+    }
+
+    // STUDENT: Load items
+    async function loadItems(status = '') {
+      const url = status ? `/api/items?status=${status}` : '/api/items';
+      const res = await fetch(url);
+      const items = await res.json();
+      const container = document.getElementById('studentItemsContainer');
+      container.innerHTML = items.length === 0 ? '<p style="color: var(--text-muted);">No items reported.</p>' : '';
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div>
+            <span class="badge badge-${item.status}">${item.status}</span>
+            <strong>${item.title}</strong>
+            <p style="font-size: 0.88rem; color: #475569;">${item.description || 'No description provided.'}</p>
+            <div class="meta">📍 ${item.location} | 📂 ${item.category} | ✉️ ${item.contactEmail}</div>
+          </div>
+          <div>
+            ${item.status === 'FOUND' ? `<button class="btn-claim" onclick="claimItem(${item.id})">Claim</button>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // STUDENT: Create item
+    document.getElementById('itemForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        title: document.getElementById('title').value,
+        status: document.getElementById('status').value,
+        category: document.getElementById('category').value,
+        location: document.getElementById('location').value,
+        description: document.getElementById('description').value,
+        contactEmail: sessionStorage.getItem('user')
+      };
+
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        e.target.reset();
+        loadItems();
+      }
+    });
+
+    // STUDENT: Claim item
+    async function claimItem(id) {
+      const proof = prompt('Describe proof of ownership (e.g. markings, lock code, content inside):');
+      if (!proof) return;
+
+      const payload = {
+        itemId: id,
+        claimantName: sessionStorage.getItem('user').split('@')[0],
+        claimantEmail: sessionStorage.getItem('user'),
+        proofDescription: proof
+      };
+
+      const res = await fetch('/api/claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) alert('Claim submitted! An admin will review it.');
+    }
+
+    // ADMIN: Load Claims for Moderation
+    async function loadAdminClaims() {
+      const res = await fetch('/api/claims');
+      const claims = await res.json();
+      const container = document.getElementById('adminClaimsContainer');
+      container.innerHTML = claims.length === 0 ? '<p style="color: var(--text-muted);">No submitted claims.</p>' : '';
+
+      claims.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div>
+            <span class="badge badge-${c.claimStatus}">${c.claimStatus}</span>
+            <div style="font-weight: 600; font-size: 0.95rem;">Item ID #${c.itemId} - ${c.claimantName}</div>
+            <p style="font-size: 0.85rem; color: #475569;">Proof: "${c.proofDescription}"</p>
+            <div class="meta">Claimant: ${c.claimantEmail} | Date: ${c.claimDate}</div>
+          </div>
+          <div style="display: flex; gap: 6px; flex-direction: column;">
+            ${c.claimStatus === 'PENDING' ? `
+              <button class="btn-approve" onclick="resolveClaim(${c.id}, 'APPROVED')">Approve</button>
+              <button class="btn-reject" onclick="resolveClaim(${c.id}, 'REJECTED')">Reject</button>
+            ` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ADMIN: Resolve Claim
+    async function resolveClaim(claimId, status) {
+      const res = await fetch(`/api/claims/${claimId}/status?status=${status}`, { method: 'PATCH' });
+      if (res.ok) {
+        loadAdminClaims();
+        loadAdminItems();
+      }
+    }
+
+    // ADMIN: Moderate items & Delete
+    async function loadAdminItems() {
+      const res = await fetch('/api/items');
+      const items = await res.json();
+      const container = document.getElementById('adminItemsContainer');
+      container.innerHTML = items.length === 0 ? '<p style="color: var(--text-muted);">No items in database.</p>' : '';
+
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div>
+            <span class="badge badge-${item.status}">${item.status}</span>
+            <strong>#${item.id} - ${item.title}</strong>
+            <div class="meta">Reported by: ${item.contactEmail} | Loc: ${item.location}</div>
+          </div>
+          <button class="btn-delete" onclick="adminDeleteItem(${item.id})">Delete</button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ADMIN: Delete Item
+    async function adminDeleteItem(id) {
+      if (!confirm(`Delete item #${id}?`)) return;
+      const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadAdminItems();
+        loadAdminClaims();
+      }
+    }
+
+    // Initialize state on page load
+    renderApp();
+  </script>
+</body>
+</html>

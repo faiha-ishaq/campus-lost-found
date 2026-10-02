@@ -58,4 +58,9 @@ public class ClaimController {
             return ResponseEntity.ok(claim);
         }).orElse(ResponseEntity.notFound().build());
     }
+    // READ ALL: For Admin moderation
+    @GetMapping
+    public ResponseEntity<List<Claim>> getAllClaims() {
+        return ResponseEntity.ok(claimRepository.findAll());
+    }
 }
